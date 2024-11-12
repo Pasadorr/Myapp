@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Добавить задачу</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'task_manager/css/styles.css' %}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.2/fullcalendar.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.2/fullcalendar.min.js"></script>
+</head>
+<body>
+    <h1>Добавить новую задачу</h1>
+    <form method="post">
+        {% csrf_token %}
+        <div>
+            <label for="title">Название задачи:</label>
+            <input type="text" id="title" name="title" required>
+        </div>
+        <div>
+            <label for="due_date">Выберите дату выполнения:</label>
+            <input type="date" id="due_date" name="due_date" required>
+        </div>
+        <button type="submit">Сохранить</button>
+    </form>
+    <a href="{% url 'home' %}">Назад к задачам</a>
+
+    <div id='calendar' style="max-width: 800px; margin: auto;"></div> <!-- Ограничиваем ширину календаря -->
+
+    <script>
+        $(document).ready(function() {
+            $('#calendar').fullCalendar({
+                header: {
+                    left: 'prev',
+                    center: 'title',
+                    right: 'next'
+                },
+                selectable: true,
+                selectHelper: true,
+                select: function(start, end) {
+                    var date = moment(start).format('YYYY-MM-DD'); // Получаем выбранную дату
+                    $('#due_date').val(date); // Устанавливаем дату в поле выбора
+                    $('#calendar').fullCalendar('unselect'); // Убираем выделение
+                },
+                events: [] // Здесь можете добавить события из базы данных, если необходимо
+            });
+
+            // Темная/Светлая тема
+            $('#toggle-theme').click(function() {
+                $('body').toggleClass('light');
+                $('.left-column, .right-column').toggleClass('light');
+                $('a').toggleClass('light');
+                $('h1, h2').toggleClass('light');
+                $('button').toggleClass('light');
+            });
+        });
+    </script>
+
+<form method="GET">
+       <label for="priority">Приоритет:</label>
+       <select name="priority" id="priority">
+           <option value="">Все</option>
+           <option value="low">Низкий</option>
+           <option value="medium">Средний</option>
+           <option value="high">Высокий</option>
+       </select>
+
+       <label for="sort_by">Сортировать по:</label>
+       <select name="sort_by" id="sort_by">
+           <option value="created_at">Дате создания</option>
+           <option value="due_date">Сроку выполнения</option>
+           <option value="priority">Приоритету</option>
+       </select>
+
+       <button type="submit">Применить</button>
+   </form>
+
+   <ul>
+       {% for task in tasks %}
+       <li>
+           {{ task.title }} - Дата выполнения: {{ task.due_date|date:"d.m.Y H:i" }}
+           {% if task.completed %}
+           <span class="completed">Завершена</span>
+           {% else %}
+           <a href="{% url 'complete_task' task.id %}"><i class="fas fa-check-circle"></i> Выполнить</a>
+           {% endif %}
+           <a href="{% url 'delete_task' task.id %}"><i class="fas fa-trash"></i> Удалить</a>
+           {% if task.subtasks.all %}
+           <ul>
+               {% for subtask in task.subtasks.all %}
+               <li>{{ subtask.title }} - Дата выполнения: {{ subtask.due_date|date:"d.m.Y H:i" }}</li>
+               {% endfor %}
+           </ul>
+           {% endif %}
+       </li>
+       {% endfor %}
+   </ul>
+   <div>
+       {% for page in tasks.paginator.page_range %}
+           <a href="?page={{ page }}">{{ page }}</a>
+       {% endfor %}
+   </div>
+</body>
+</html>

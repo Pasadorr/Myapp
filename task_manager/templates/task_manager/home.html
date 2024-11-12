@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'task_manager/css/styles.css' %}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.2/fullcalendar.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.2/fullcalendar.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.2/locale/ru.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="left-column">
+            <h1>Добавить задачу</h1>
+            <form method="post">
+                {% csrf_token %}
+                <div>
+                    {{ form.title.label }} <br>
+                    {{ form.title }} <br>
+                </div>
+                <div>
+                    {{ form.description.label }} <br>
+                    {{ form.description }} <br>
+                </div>
+                <div>
+                    {{ form.assigned_to.label }} <br>
+                    {{ form.assigned_to }} <br>
+                </div>
+                <div>
+                    {{ form.due_date.label }} <br>
+                    <input type="datetime-local" id="due_date" name="due_date" required> <!-- Новый элемент для выбора даты и времени -->
+                </div>
+                <div>
+                    {{ form.priority.label }} <br>
+                    {{ form.priority }} <br>
+                </div>
+                <div>
+                    {{ form.category.label }} <br>
+                    {{ form.category }} <br>
+                </div>
+                <button type="submit">Сохранить</button>
+            </form>
+        </div>
+
+        <div class="right-column">
+            <button id="toggle-theme" style="float: right;">Переключить тему</button> <!-- Переключатель темы -->
+            <h2>Список задач</h2>
+            <ul>
+                {% for task in tasks %}
+                <li>
+                    {{ task.title }} - Дата выполнения: {{ task.due_date|date:"d.m.Y H:i" }}
+                    {% if task.completed %}
+                    <span class="completed">Завершена</span>
+                    {% else %}
+                    <a href="{% url 'complete_task' task.id %}"><i class="fas fa-check-circle"></i> Выполнить</a>
+                    {% endif %}
+                    <a href="{% url 'delete_task' task.id %}"><i class="fas fa-trash"></i> Удалить</a>
+                </li>
+                {% endfor %}
+            </ul>
+            <div id="calendar" style="margin-top: 20px;"></div> <!-- Календарь перемещён сюда -->
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            // Подготовка данных для календаря
+            var tasks = [
+                {% for task in tasks %}
+                {
+                    title: '{{ task.title }}',
+                    start: '{{ task.due_date|date:"Y-m-d H:i:s" }}',
+                    description: '{% if task.completed %}Завершена{% else %}Запланирована{% endif %}',
+                    color: '{% if task.completed %}#28a745{% else %}#007bff{% endif %}' // Зеленый для завершённых, синий для запланированных
+                },
+                {% endfor %}
+            ];
+
+            // Инициализация FullCalendar
+            $('#calendar').fullCalendar({
+                header: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'month,agendaWeek,agendaDay'
+                },
+                selectable: true,
+                events: tasks, // Передаем события в календарь
+                eventRender: function(event, element) {
+                    // Если вы хотите отображать описание задачи
+                    element.attr('title', event.description);
+                },
+                select: function(start, end) {
+                    $('#due_date').val(start.format('YYYY-MM-DDTHH:mm')); // Установка выбранной даты и времени в поле ввода
+                    $('#calendar').fullCalendar('unselect'); // Сбрасываем выделение
+                }
+            });
+
+            // Темная/Светлая тема
+            $('#toggle-theme').click(function() {
+                $('body').toggleClass('light');
+                $('.left-column, .right-column').toggleClass('light');
+                $('a').toggleClass('light');
+                $('h1, h2').toggleClass('light');
+                $('button').toggleClass('light');
+            });
+        });
+    </script>
+</body>
+</html>
